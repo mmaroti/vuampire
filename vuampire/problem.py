@@ -13,14 +13,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .domain import FixedDomain
-from .relation import Relation
+from typing import List
 
 
-def cli():
-    dom = FixedDomain("dom", 3)
-    for line in dom.declaration:
-        print(line)
-    rel = Relation("rel", dom, 2)
-    for line in rel.declaration:
-        print(line)
+class Item:
+    def declaration(self) -> List[str]:
+        """
+        Prints a declaration (axiom, type or conjecture) for the ttf problem.
+        """
+        raise NotImplementedError()
+
+
+class Problem:
+    def __init__(self):
+        self.items: List[Item] = []
+
+    def add(self, item: Item):
+        self.items.append(item)

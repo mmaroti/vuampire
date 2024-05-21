@@ -1,0 +1,18 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "vuampire"
+authors = [{ name = "Miklos Maroti", email = "mmaroti@gmail.com" }]
+description = "Universal Algebra claculator based on the Vampire theorem prover"
+readme = "README.md"
+license = { text = "GPLv3+ License" }
+urls = { Repository = "https://github.com/mmaroti/vuampire.git" }
+requires-python = ">=3.10"
+classifiers = ["License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)"]
+dependencies = ["click"]
+dynamic = ["version"]
+
+[project.scripts]
+vuampire = "vuampire.__main__:cli"

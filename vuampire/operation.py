@@ -18,7 +18,7 @@ from typing import Iterator, List
 from .domain import Domain
 
 
-class Relation:
+class Operation:
     def __init__(self, name: str, domain: Domain, arity: int):
         assert arity >= 0
         self.name = name
@@ -27,32 +27,36 @@ class Relation:
 
     def declare(self) -> Iterator[str]:
         if self.arity == 0:
-            yield f"tff({self.name}_type, type, {self.name}: $o)."
+            yield f"tff({self.name}_type, type, {self.name}: {self.domain.type_name})."
         elif self.arity == 1:
-            yield f"tff({self.name}_type, type, {self.name}: {self.domain.type_name} > $o)."
+            yield f"tff({self.name}_type, type, {self.name}: {self.domain.type_name} > {self.domain.type_name})."
         else:
             elems = " * ".join([self.domain.type_name for _ in range(self.arity)])
-            yield f"tff({self.name}_type, type, {self.name}: ({elems}) > $o)."
+            yield f"tff({self.name}_type, type, {self.name}: ({elems}) > {self.domain.type_name})."
 
-    def contains(self, elems: List[str]) -> str:
+    def evaluate(self, elems: List[str]) -> str:
         assert len(elems) == self.arity
-        if self.arity == 0:
+        if not elems:
             return self.name
         else:
-            return f"{self.name}({', '.join(elems)})"
+            return f"{self.name}({','.join(elems)})"
 
-    def is_reflexive(self) -> str:
-        if self.arity == 0:
-            return self.contains([])
-        else:
-            return f"![X:{self.domain.type_name}]: {self.contains(['X' for _ in range(self.arity)])}"
+    def is_idempotent(self) -> str:
+        assert self.arity >= 1
+        return f"![X:{self.domain.type_name}]: {self.evaluate(['X' for _ in range(self.arity)])} = X"
 
-    def is_symmetric(self) -> str:
+    def is_commutative(self) -> str:
         assert self.arity == 2
         return f"![X:{self.domain.type_name}, Y:{self.domain.type_name}]: " \
-            f"({self.contains(['X', 'Y'])} => {self.contains(['Y', 'X'])})"
+            f"{self.evaluate(['X', 'Y'])} = {self.evaluate(['Y', 'X'])}"
 
-    def is_transitive(self) -> str:
+    def is_associative(self) -> str:
         assert self.arity == 2
         return f"![X:{self.domain.type_name}, Y:{self.domain.type_name}, Z:{self.domain.type_name}]: " \
-            f"(({self.contains(['X', 'Y'])} & {self.contains(['Y','Z'])}) => {self.contains(['X', 'Z'])})"
+            f"{self.evaluate(['X', self.evaluate(['Y', 'Z'])])} = " \
+            f"{self.evaluate([self.evaluate(['X', 'Y']), 'Z'])}"
+
+
+class Constant(Operation):
+    def __init__(self, name: str, domain: Domain):
+        super().__init__(name, domain, 0)

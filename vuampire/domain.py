@@ -13,50 +13,63 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import List
-
-from .problem import Item
+from typing import Iterator
 
 
-class Domain(Item):
+class Domain:
+    @property
+    def type_name(self) -> str:
+        raise NotImplementedError()
+
+
+class PrimitiveDom(Domain):
     def __init__(self, name: str):
         self.name = name
-
-    @property
-    def declaration(self) -> List[str]:
-        return [
-            f"tff({self.name}_type, type, {self.name}:$tType).",
-        ]
 
     @property
     def type_name(self) -> str:
         return self.name
 
+    def declare(self) -> Iterator[str]:
+        if False:
+            yield
 
-class FixedDomain(Domain):
-    def __init__(self, name: str, size: int):
-        assert size >= 1
-        super().__init__(name)
-        self.size = size
 
-    def elem_name(self, index: int) -> str:
-        assert 0 <= index < self.size
-        return f"{self.name}_{index}"
+UNIVERSE = PrimitiveDom("$i")
+BOOLEAN = PrimitiveDom("$o")
+INTEGER = PrimitiveDom("$int")
+
+
+class NamedDom(Domain):
+    def __init__(self, name: str):
+        self.name = name
 
     @property
-    def declaration(self) -> List[str]:
-        result: List[str] = super().declaration
+    def type_name(self) -> str:
+        return self.name
+
+    def declare(self) -> Iterator[str]:
+        yield f"tff({self.name}_type, type, {self.name}:$tType)."
+
+
+class FixedDom(Domain):
+    def __init__(self, name: str, size: int):
+        self.name = name
+        self.size = size
+
+        self.elems = [f"{name}_{i}" for i in range(size)]
+
+    @property
+    def type_name(self) -> str:
+        return self.name
+
+    def declare(self) -> Iterator[str]:
+        yield f"tff({self.name}_type, type, {self.name}: $tType)."
+
         for i in range(self.size):
-            result.append(
-                f"tff({self.elem_name(i)}_elem, type, {self.elem_name(i)}:{self.type_name})."
-            )
-        elems = " | ".join(
-            [f"X={self.elem_name(i)}" for i in range(self.size)])
-        result.append(
-            f"tff({self.name}_finite, axiom, ![X:{self.type_name}]: ({elems}))."
-        )
-        elems = ", ".join([self.elem_name(i) for i in range(self.size)])
-        result.append(
-            f"tff({self.name}_distinct, axiom, $distinct({elems}))."
-        )
-        return result
+            yield f"tff({self.elems[i]}_elem, type, {self.elems[i]}: {self.type_name})."
+
+        yield f"tff({self.name}_elements, axiom, ![X:{self.type_name}]: " \
+            f"({' | '.join([f'X={e}' for e in self.elems])}))."
+
+        yield f"tff({self.name}_distinct, axiom, $distinct({', '.join(self.elems)}))."

@@ -13,14 +13,26 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .domain import FixedDomain
+from .domain import FixedDom
 from .relation import Relation
+from .operation import Operation
 
 
 def cli():
-    dom = FixedDomain("dom", 3)
-    for line in dom.declaration:
+    dom = FixedDom("dom", 3)
+    for line in dom.declare():
         print(line)
+
     rel = Relation("rel", dom, 2)
-    for line in rel.declaration:
+    for line in rel.declare():
         print(line)
+    print(f"tff(reflexive, axiom, {rel.is_reflexive()}).")
+    print(f"tff(symmetric, axiom, {rel.is_symmetric()}).")
+    print(f"tff(transitive, axiom, {rel.is_transitive()}).")
+
+    op = Operation("op", dom, 2)
+    for line in op.declare():
+        print(line)
+    print(f"tff(idempotent, axiom, {op.is_idempotent()}).")
+    print(f"tff(commutative, axiom, {op.is_commutative()}).")
+    print(f"tff(associative, axiom, {op.is_associative()}).")

@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from .domain import FixedDom
-from .relation import Relation
+from .relation import NamedRel
 from .operation import Operation
 
 
@@ -23,12 +23,11 @@ def cli():
     for line in dom.declare():
         print(line)
 
-    rel = Relation("rel", dom, 2)
+    rel = NamedRel("rel", dom, 2)
     for line in rel.declare():
         print(line)
-    print(f"tff(reflexive, axiom, {rel.is_reflexive()}).")
-    print(f"tff(symmetric, axiom, {rel.is_symmetric()}).")
-    print(f"tff(transitive, axiom, {rel.is_transitive()}).")
+    table = [True, True, False, True, True, True, True, False, True]
+    print(f"tff(rel_table, axiom, {rel.has_values(table)}).")
 
     op = Operation("op", dom, 2)
     for line in op.declare():

@@ -52,19 +52,15 @@ class NamedDom(Domain):
         yield f"tff({self.name}_type, type, {self.name}:$tType)."
 
 
-class FixedDom(Domain):
+class FixedDom(NamedDom):
     def __init__(self, name: str, size: int):
-        self.name = name
+        super().__init__(name)
         self.size = size
-
         self.elems = [f"{name}_{i}" for i in range(size)]
 
-    @property
-    def type_name(self) -> str:
-        return self.name
-
     def declare(self) -> Iterator[str]:
-        yield f"tff({self.name}_type, type, {self.name}: $tType)."
+        for line in super().declare():
+            yield line
 
         for i in range(self.size):
             yield f"tff({self.elems[i]}_elem, type, {self.elems[i]}: {self.type_name})."

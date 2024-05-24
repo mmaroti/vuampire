@@ -13,33 +13,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Iterator, List
+from typing import Iterator, List, Optional
 
 from .domain import Domain
 
 
 class Relation:
-    def __init__(self, name: str, domain: Domain, arity: int):
+    def __init__(self, domain: Domain, arity: int):
         assert arity >= 0
-        self.name = name
         self.domain = domain
         self.arity = arity
 
-    def declare(self) -> Iterator[str]:
-        if self.arity == 0:
-            yield f"tff({self.name}_type, type, {self.name}: $o)."
-        elif self.arity == 1:
-            yield f"tff({self.name}_type, type, {self.name}: {self.domain.type_name} > $o)."
-        else:
-            elems = " * ".join([self.domain.type_name for _ in range(self.arity)])
-            yield f"tff({self.name}_type, type, {self.name}: ({elems}) > $o)."
-
     def contains(self, elems: List[str]) -> str:
-        assert len(elems) == self.arity
-        if self.arity == 0:
-            return self.name
-        else:
-            return f"{self.name}({', '.join(elems)})"
+        raise NotImplementedError()
 
     def is_reflexive(self) -> str:
         if self.arity == 0:
@@ -56,3 +42,47 @@ class Relation:
         assert self.arity == 2
         return f"![X:{self.domain.type_name}, Y:{self.domain.type_name}, Z:{self.domain.type_name}]: " \
             f"(({self.contains(['X', 'Y'])} & {self.contains(['Y','Z'])}) => {self.contains(['X', 'Z'])})"
+
+    def has_values(self, table: List[Optional[bool]], elems: Optional[List[str]] = None) -> str:
+        if elems is None:
+            elems = self.domain.elems
+        assert len(table) == len(elems) ** self.arity
+
+        claims = []
+        for idx, val in enumerate(table):
+            if val is None:
+                continue
+
+            coord = []
+            for _ in range(self.arity):
+                coord.append(elems[idx % len(elems)])
+                idx //= len(elems)
+            coord.reverse()
+            claims.append(("" if val else "~") + self.contains(coord))
+
+        if not claims:
+            return "$true"
+        else:
+            return " & ".join(claims)
+
+
+class NamedRel(Relation):
+    def __init__(self, name: str, domain: Domain, arity: int):
+        super().__init__(domain, arity)
+        self.name = name
+
+    def declare(self) -> Iterator[str]:
+        if self.arity == 0:
+            yield f"tff({self.name}_type, type, {self.name}: $o)."
+        elif self.arity == 1:
+            yield f"tff({self.name}_type, type, {self.name}: {self.domain.type_name} > $o)."
+        else:
+            elems = " * ".join([self.domain.type_name for _ in range(self.arity)])
+            yield f"tff({self.name}_type, type, {self.name}: ({elems}) > $o)."
+
+    def contains(self, elems: List[str]) -> str:
+        assert len(elems) == self.arity
+        if self.arity == 0:
+            return self.name
+        else:
+            return f"{self.name}({','.join(elems)})"

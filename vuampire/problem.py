@@ -15,18 +15,9 @@
 
 from typing import List
 
-
-class Item:
-    def declaration(self) -> List[str]:
-        """
-        Prints a declaration (axiom, type or conjecture) for the ttf problem.
-        """
-        raise NotImplementedError()
+from .domain import Domain
 
 
 class Problem:
     def __init__(self):
-        self.items: List[Item] = []
-
-    def add(self, item: Item):
-        self.items.append(item)
+        self.domains: List[Domain]

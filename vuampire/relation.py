@@ -19,29 +19,56 @@ from .domain import Domain
 
 
 class Relation:
-    def __init__(self, domain: Domain, arity: int):
+    def __init__(self, name: str, domain: Domain, arity: int):
         assert arity >= 0
         self.domain = domain
         self.arity = arity
+        self.name = name
+
+    def declare(self) -> Iterator[str]:
+        if self.arity == 0:
+            yield f"tff({self.name}_type, type, {self.name}: $o)."
+        elif self.arity == 1:
+            yield f"tff({self.name}_type, type, {self.name}: {self.domain.type_name} > $o)."
+        else:
+            elems = " * ".join([self.domain.type_name for _ in range(self.arity)])
+            yield f"tff({self.name}_type, type, {self.name}: ({elems}) > $o)."
 
     def contains(self, elems: List[str]) -> str:
-        raise NotImplementedError()
+        assert len(elems) == self.arity
+        if self.arity == 0:
+            return self.name
+        else:
+            return f"{self.name}({','.join(elems)})"
 
     def is_reflexive(self) -> str:
         if self.arity == 0:
             return self.contains([])
         else:
-            return f"![X:{self.domain.type_name}]: {self.contains(['X' for _ in range(self.arity)])}"
+            return f"(![X:{self.domain.type_name}]: {self.contains(['X' for _ in range(self.arity)])})"
 
     def is_symmetric(self) -> str:
         assert self.arity == 2
-        return f"![X:{self.domain.type_name}, Y:{self.domain.type_name}]: " \
-            f"({self.contains(['X', 'Y'])} => {self.contains(['Y', 'X'])})"
+        return f"(![X:{self.domain.type_name}, Y:{self.domain.type_name}]: " \
+            f"({self.contains(['X', 'Y'])} => {self.contains(['Y', 'X'])}))"
+
+    def is_antisymmetric(self) -> str:
+        assert self.arity == 2
+        return f"(![X:{self.domain.type_name}, Y:{self.domain.type_name}]: " \
+            f"(({self.contains(['X', 'Y'])} & {self.contains(['Y', 'X'])}) => X=Y))"
 
     def is_transitive(self) -> str:
         assert self.arity == 2
-        return f"![X:{self.domain.type_name}, Y:{self.domain.type_name}, Z:{self.domain.type_name}]: " \
-            f"(({self.contains(['X', 'Y'])} & {self.contains(['Y','Z'])}) => {self.contains(['X', 'Z'])})"
+        return f"(![X:{self.domain.type_name}, Y:{self.domain.type_name}, Z:{self.domain.type_name}]: " \
+            f"(({self.contains(['X', 'Y'])} & {self.contains(['Y','Z'])}) => {self.contains(['X', 'Z'])}))"
+
+    def is_partialorder(self) -> str:
+        assert self.arity == 2
+        return f"({self.is_reflexive()} & {self.is_antisymmetric} & {self.is_transitive})"
+
+    def is_equivalence(self) -> str:
+        assert self.arity == 2
+        return f"({self.is_reflexive()} & {self.is_symmetric} & {self.is_transitive})"
 
     def has_values(self, table: List[Optional[bool]], elems: Optional[List[str]] = None) -> str:
         if elems is None:
@@ -62,27 +89,7 @@ class Relation:
 
         if not claims:
             return "$true"
+        elif len(claims) == 1:
+            return claims[0]
         else:
-            return " & ".join(claims)
-
-
-class NamedRel(Relation):
-    def __init__(self, name: str, domain: Domain, arity: int):
-        super().__init__(domain, arity)
-        self.name = name
-
-    def declare(self) -> Iterator[str]:
-        if self.arity == 0:
-            yield f"tff({self.name}_type, type, {self.name}: $o)."
-        elif self.arity == 1:
-            yield f"tff({self.name}_type, type, {self.name}: {self.domain.type_name} > $o)."
-        else:
-            elems = " * ".join([self.domain.type_name for _ in range(self.arity)])
-            yield f"tff({self.name}_type, type, {self.name}: ({elems}) > $o)."
-
-    def contains(self, elems: List[str]) -> str:
-        assert len(elems) == self.arity
-        if self.arity == 0:
-            return self.name
-        else:
-            return f"{self.name}({','.join(elems)})"
+            return "(" + " & ".join(claims) + ")"

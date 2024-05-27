@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from .domain import FixedDom
-from .relation import NamedRel
+from .relation import Relation
 from .operation import Operation
 
 
@@ -23,7 +23,7 @@ def cli():
     for line in dom.declare():
         print(line)
 
-    rel = NamedRel("rel", dom, 2)
+    rel = Relation("rel", dom, 2)
     for line in rel.declare():
         print(line)
     table = [True, True, False, True, True, True, True, False, True]
@@ -33,5 +33,6 @@ def cli():
     for line in op.declare():
         print(line)
     print(f"tff(idempotent, axiom, {op.is_idempotent()}).")
-    print(f"tff(commutative, axiom, {op.is_commutative()}).")
-    print(f"tff(associative, axiom, {op.is_associative()}).")
+    print(f"tff(compatible, axiom, {op.is_compatible_with(rel)}).")
+    table = [None, 'dom_1', 'dom_1', None]
+    print(f"tff(op_table, axiom, {op.has_values(table, ['dom_0', 'dom_1'])}).")

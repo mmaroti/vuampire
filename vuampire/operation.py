@@ -13,9 +13,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Iterator, List
+from typing import Iterator, List, Optional
 
 from .domain import Domain
+from .relation import Relation
 
 
 class Operation:
@@ -43,18 +44,73 @@ class Operation:
 
     def is_idempotent(self) -> str:
         assert self.arity >= 1
-        return f"![X:{self.domain.type_name}]: {self.evaluate(['X' for _ in range(self.arity)])} = X"
+        return f"(![X:{self.domain.type_name}]: {self.evaluate(['X' for _ in range(self.arity)])}=X)"
 
     def is_commutative(self) -> str:
         assert self.arity == 2
-        return f"![X:{self.domain.type_name}, Y:{self.domain.type_name}]: " \
-            f"{self.evaluate(['X', 'Y'])} = {self.evaluate(['Y', 'X'])}"
+        return f"(![X:{self.domain.type_name}, Y:{self.domain.type_name}]: " \
+            f"{self.evaluate(['X', 'Y'])}={self.evaluate(['Y', 'X'])})"
 
     def is_associative(self) -> str:
         assert self.arity == 2
-        return f"![X:{self.domain.type_name}, Y:{self.domain.type_name}, Z:{self.domain.type_name}]: " \
-            f"{self.evaluate(['X', self.evaluate(['Y', 'Z'])])} = " \
-            f"{self.evaluate([self.evaluate(['X', 'Y']), 'Z'])}"
+        return f"(![X:{self.domain.type_name}, Y:{self.domain.type_name}, Z:{self.domain.type_name}]: " \
+            f"{self.evaluate(['X', self.evaluate(['Y', 'Z'])])}=" \
+            f"{self.evaluate([self.evaluate(['X', 'Y']), 'Z'])})"
+
+    def is_compatible_with(self, rel: Relation) -> str:
+        if rel.arity == 0:
+            return "$true"
+        elif self.arity == 0:
+            return rel.contains([self.evaluate([]) for _ in rel.arity])
+
+        def var(i: int, j: int) -> str:
+            return chr(ord('A') + i) + str(j)
+
+        vars = []
+        for i in range(self.arity):
+            for j in range(rel.arity):
+                vars.append(var(i, j) + ":" + self.domain.type_name)
+        vars = ", ".join(vars)
+
+        pred = []
+        for i in range(self.arity):
+            pred.append(rel.contains([var(i, j) for j in range(rel.arity)]))
+
+        if len(pred) >= 2:
+            pred = "(" + " & ".join(pred) + ")"
+        else:
+            pred = pred[0]
+
+        conc = []
+        for j in range(rel.arity):
+            conc.append(self.evaluate([var(i, j) for i in range(self.arity)]))
+        conc = rel.contains(conc)
+
+        return f"(![{vars}]: ({pred} => {conc}))"
+
+    def has_values(self, table: List[Optional[str]], elems: Optional[List[str]] = None) -> str:
+        if elems is None:
+            elems = self.domain.elems
+        assert len(table) == len(elems) ** self.arity
+
+        claims = []
+        for idx, val in enumerate(table):
+            if val is None:
+                continue
+
+            coord = []
+            for _ in range(self.arity):
+                coord.append(elems[idx % len(elems)])
+                idx //= len(elems)
+            coord.reverse()
+            claims.append(self.evaluate(coord) + "=" + val)
+
+        if not claims:
+            return "$true"
+        elif len(claims) == 1:
+            return claims[0]
+        else:
+            return "(" + " & ".join(claims) + ")"
 
 
 class Constant(Operation):

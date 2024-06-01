@@ -28,12 +28,12 @@ class Operation:
 
     def declare(self) -> Iterator[str]:
         if self.arity == 0:
-            yield f"tff({self.name}_type, type, {self.name}: {self.domain.type_name})."
+            yield f"tff(declare_{self.name}, type, {self.name}: {self.domain.type_name})."
         elif self.arity == 1:
-            yield f"tff({self.name}_type, type, {self.name}: {self.domain.type_name} > {self.domain.type_name})."
+            yield f"tff(declare_{self.name}, type, {self.name}: {self.domain.type_name} > {self.domain.type_name})."
         else:
             elems = " * ".join([self.domain.type_name for _ in range(self.arity)])
-            yield f"tff({self.name}_type, type, {self.name}: ({elems}) > {self.domain.type_name})."
+            yield f"tff(declare_{self.name}, type, {self.name}: ({elems}) > {self.domain.type_name})."
 
     def evaluate(self, elems: List[str]) -> str:
         assert len(elems) == self.arity

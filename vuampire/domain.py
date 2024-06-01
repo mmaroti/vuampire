@@ -49,7 +49,7 @@ class NamedDom(Domain):
         return self.name
 
     def declare(self) -> Iterator[str]:
-        yield f"tff({self.name}_type, type, {self.name}:$tType)."
+        yield f"tff(declared_{self.name}, type, {self.name}:$tType)."
 
 
 class FixedDom(NamedDom):
@@ -63,7 +63,7 @@ class FixedDom(NamedDom):
             yield line
 
         for i in range(self.size):
-            yield f"tff({self.elems[i]}_elem, type, {self.elems[i]}: {self.type_name})."
+            yield f"tff(declare_{self.elems[i]}, type, {self.elems[i]}: {self.type_name})."
 
         yield f"tff({self.name}_elements, axiom, ![X:{self.type_name}]: " \
             f"({' | '.join([f'X={e}' for e in self.elems])}))."

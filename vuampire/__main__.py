@@ -13,26 +13,49 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
+
 from .domain import FixedDom
 from .relation import Relation
 from .operation import Operation
+from .problem import Problem
 
 
 def cli():
+    prob = Problem()
+
     dom = FixedDom("dom", 3)
-    for line in dom.declare():
-        print(line)
+    prob.declare(dom)
 
-    rel = Relation("rel", dom, 2)
-    for line in rel.declare():
-        print(line)
+    rel0 = Relation("rel0", dom, 0)
+    prob.declare(rel0)
+    prob.require("hihi", rel0.is_reflexive())
+
+    rel1 = Relation("rel1", dom, 1)
+    prob.declare(rel1)
+
+    rel2 = Relation("rel2", dom, 2)
+    prob.declare(rel2)
+
     table = [True, True, False, True, True, True, True, False, True]
-    print(f"tff(rel_table, axiom, {rel.has_values(table)}).")
+    prob.require("rel_table", rel2.has_values(table))
 
-    op = Operation("op", dom, 2)
-    for line in op.declare():
-        print(line)
-    print(f"tff(idempotent, axiom, {op.is_idempotent()}).")
-    print(f"tff(compatible, axiom, {op.is_compatible_with(rel)}).")
+    op0 = Operation("op0", dom, 0)
+    prob.declare(op0)
+
+    op1 = Operation("op1", dom, 1)
+    prob.declare(op1)
+    prob.require("haha", op1.is_idempotent())
+    prob.require("hehe", "op0=op1(dom_0)")
+
+    op2 = Operation("op2", dom, 2)
+    prob.declare(op2)
+
+    prob.require("idempotent", op2.is_idempotent())
+    prob.require("compatible", op2.is_compatible_with(rel2))
     table = [None, 'dom_1', 'dom_1', None]
-    print(f"tff(op_table, axiom, {op.has_values(table, ['dom_0', 'dom_1'])}).")
+    prob.require("op_table", op2.has_values(table, ['dom_0', 'dom_1']))
+
+    # prob.print()
+    print(json.dumps(prob.find_one_model(), indent=2))
+    # print(prob.find_one_model())

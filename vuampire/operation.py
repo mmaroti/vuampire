@@ -88,7 +88,7 @@ class Operation:
 
         return f"(![{vars}]: ({pred} => {conc}))"
 
-    def has_values(self, table: List[Optional[str]], elems: Optional[List[str]] = None) -> str:
+    def has_values(self, table: List[Optional[int]], elems: Optional[List[str]] = None) -> str:
         if elems is None:
             elems = self.domain.elems
         assert len(table) == len(elems) ** self.arity
@@ -103,7 +103,7 @@ class Operation:
                 coord.append(elems[idx % len(elems)])
                 idx //= len(elems)
             coord.reverse()
-            claims.append(self.evaluate(coord) + "=" + val)
+            claims.append(self.evaluate(coord) + "=" + elems[val])
 
         if not claims:
             return "$true"

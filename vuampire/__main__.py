@@ -27,35 +27,24 @@ def cli():
     dom = FixedDom("dom", 3)
     prob.declare(dom)
 
-    rel0 = Relation("rel0", dom, 0)
-    prob.declare(rel0)
-    prob.require("hihi", rel0.is_reflexive())
-
-    rel1 = Relation("rel1", dom, 1)
-    prob.declare(rel1)
-
-    rel2 = Relation("rel2", dom, 2)
-    prob.declare(rel2)
+    rel = Relation("rel", dom, 2)
+    prob.declare(rel)
 
     table = [True, True, False, True, True, True, True, False, True]
-    prob.require("rel_table", rel2.has_values(table))
+    prob.require(rel.has_values(table))
 
-    op0 = Operation("op0", dom, 0)
-    prob.declare(op0)
+    op = Operation("op", dom, 2)
+    prob.declare(op)
+    prob.require(op.is_idempotent())
+    prob.require(op.is_compatible_with(rel))
 
-    op1 = Operation("op1", dom, 1)
-    prob.declare(op1)
-    prob.require("haha", op1.is_idempotent())
-    prob.require("hehe", "op0=op1(dom_0)")
+    elem = Operation("elem", dom, 0)
+    prob.declare(elem)
 
-    op2 = Operation("op2", dom, 2)
-    prob.declare(op2)
-
-    prob.require("idempotent", op2.is_idempotent())
-    prob.require("compatible", op2.is_compatible_with(rel2))
-    table = [None, 'dom_1', 'dom_1', None]
-    prob.require("op_table", op2.has_values(table, ['dom_0', 'dom_1']))
+    proj = Operation("proj", dom, 1)
+    prob.declare(proj)
+    prob.require("![X:dom]: proj(X)=op(elem, X)")
 
     # prob.print()
-    print(json.dumps(prob.find_one_model(), indent=2))
-    # print(prob.find_one_model())
+    # print(json.dumps(prob.find_one_model(), indent=2))
+    print(prob.find_all_models(["proj"]))

@@ -24,15 +24,31 @@ from .operation import Operation
 
 class Problem:
     def __init__(self):
+        self.domains: Dict[str, Domain] = {}
+        self.relations: Dict[str, Relation] = {}
+        self.operations: Dict[str, Operation] = {}
         self.lines: List[str] = []
 
-    def declare(self, object: Domain | Relation | Operation):
-        for line in object.declare():
+    def declare(self, obj: Domain | Relation | Operation):
+        if isinstance(obj, Domain):
+            assert obj.type_name not in self.domains
+            self.domains[obj.type_name] = obj
+        elif isinstance(obj, Relation):
+            assert obj.name not in self.relations
+            self.relations[obj.name] = obj
+        elif isinstance(obj, Operation):
+            assert obj.name not in self.operations
+            self.operations[obj.name] = obj
+        else:
+            raise ValueError()
+
+        for line in obj.declare():
             self.lines.append(line)
 
-    def require(self, name: str, formula: str):
+    def require(self, formula: str):
         if formula.startswith("(") and formula.endswith(")"):
             formula = formula[1:-1]
+        name = "axiom" + str(len(self.lines))
         self.lines.append(f"tff({name}, axiom, {formula}).")
 
     def print(self):
@@ -59,15 +75,15 @@ class Problem:
     RE_FUNCTION_DECL = re.compile(r"^(\w*):(?:|\((.*)\)>)(\w*)$")
     RE_FINITE_DOM = re.compile(r"^!\[X:(\w*)\]:\((.*)\)$")
 
-    def find_one_model(self):
-        result = self.execute("-sa", "fmb")
+    def find_one_model(self) -> Dict:
+        result = self.execute("-sa", "fmb", "-fde", "none")
         if not "Finite Model Found!" in result:
             return None
-        print(result)
+        # print(result)
 
         domains: Dict[str, List[str]] = {}
-        predicates: Dict[str, Dict[str, Any]] = {}
-        functions: Dict[str, Dict[str, Any]] = {}
+        predicates = {}
+        functions = {}
 
         for match in Problem.RE_STATEMENT.finditer(result):
             formula = re.sub(r"%.*", "", match.group(3), re.MULTILINE)
@@ -105,6 +121,7 @@ class Problem:
                 if match2:
                     name = match2.group(1)
                     doms = match2.group(2)
+                    codom = match2.group(3)
                     if doms is None:
                         doms = []
                     else:
@@ -115,7 +132,7 @@ class Problem:
                     assert name not in functions
                     functions[name] = {
                         "domains": doms,
-                        "codomain": match2.group(3),
+                        "codomain": codom,
                         "table": [None for _ in range(size)],
                     }
 
@@ -187,7 +204,6 @@ class Problem:
                     left, right = formula.split("=")
                     assert left == name
                     fun = functions[left]
-                    print(fun, name)
                     assert fun["domains"] == [] and fun["table"][0] is None
                     codom = domains[fun["codomain"]]
                     assert right in codom
@@ -198,3 +214,36 @@ class Problem:
             "predicates": predicates,
             "functions": functions,
         }
+
+    def find_all_models(self, names: List[str]) -> List[Dict]:
+        for name in names:
+            assert name in self.relations or name in self.operations
+
+        results = []
+        while True:
+            result = self.find_one_model()
+            if result is None:
+                return results
+            result2 = {}
+            omits = []
+            for name in names:
+                if name in self.relations:
+                    rel = self.relations[name]
+                    pred = result["predicates"][name]
+                    table = pred["table"]
+                    result2[name] = table
+                    omits.append(rel.has_values(table))
+                elif name in self.operations:
+                    oper = self.operations[name]
+                    func = result["functions"][name]
+                    table = func["table"]
+                    result2[name] = table
+                    omits.append(oper.has_values(table))
+                else:
+                    raise ValueError()
+
+            results.append(result2)
+            if not omits:
+                return results
+
+            self.require("~(" + "&".join(omits) + ")")

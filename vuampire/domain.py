@@ -56,7 +56,7 @@ class FixedDom(NamedDom):
     def __init__(self, name: str, size: int):
         super().__init__(name)
         self.size = size
-        self.elems = [f"{name}_{i}" for i in range(size)]
+        self.elems = [f"{name}{i}" for i in range(size)]
 
     def declare(self) -> Iterator[str]:
         for line in super().declare():

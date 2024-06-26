@@ -64,11 +64,11 @@ class Relation:
 
     def is_partialorder(self) -> str:
         assert self.arity == 2
-        return f"({self.is_reflexive()} & {self.is_antisymmetric} & {self.is_transitive})"
+        return f"({self.is_reflexive()} & {self.is_antisymmetric()} & {self.is_transitive()})"
 
     def is_equivalence(self) -> str:
         assert self.arity == 2
-        return f"({self.is_reflexive()} & {self.is_symmetric} & {self.is_transitive})"
+        return f"({self.is_reflexive()} & {self.is_symmetric()} & {self.is_transitive()})"
 
     def has_values(self, table: List[Optional[bool]], elems: Optional[List[str]] = None) -> str:
         if elems is None:

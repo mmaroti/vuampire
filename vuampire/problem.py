@@ -242,6 +242,7 @@ class Problem:
                 else:
                     raise ValueError()
 
+            # print(len(results), len(result["domains"]["d"]), result2)
             results.append(result2)
             if not omits:
                 return results

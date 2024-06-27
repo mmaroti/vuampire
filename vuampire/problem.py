@@ -15,7 +15,7 @@
 
 import re
 import subprocess
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from .domain import Domain
 from .relation import Relation
@@ -64,11 +64,13 @@ class Problem:
             capture_output=True,
         )
         if result.returncode:
+            print(result.stdout)
             raise RuntimeError(f"failed with {result.returncode} error code")
         return result.stdout
 
     RE_STATEMENT = re.compile(
         r"^tff\(([\w\s]*),([\w\s]*),([^.]*)\)\.$", flags=re.MULTILINE | re.DOTALL)
+    RE_REMOVE_COMMENT = re.compile(r"^%.*$", flags=re.MULTILINE)
     RE_REMOVE_SPACE = re.compile(r"\s")
     RE_DOMAIN_DECL = re.compile(r"^(\w*):\$tType$")
     RE_PREDICATE_DECL = re.compile(r"^(\w*):(?:|\((.*)\)>)\$o$")
@@ -86,10 +88,9 @@ class Problem:
         functions = {}
 
         for match in Problem.RE_STATEMENT.finditer(result):
-            formula = re.sub(r"%.*", "", match.group(3), re.MULTILINE)
+            formula = Problem.RE_REMOVE_COMMENT.sub("", match.group(3))
             formula = Problem.RE_REMOVE_SPACE.sub("", formula)
-            # print(match.group(0))
-            # print(formula)
+            # print(">" + formula + "<")
 
             if match.group(2) == "type":
                 match2 = Problem.RE_DOMAIN_DECL.match(formula)
@@ -155,20 +156,22 @@ class Problem:
                 name = match.group(1)[10:]
                 doms = predicates[name]["domains"]
                 table = predicates[name]["table"]
-                for atom in formula.split("&"):
-                    negated = atom.startswith("~")
-                    if negated:
-                        atom = atom[1:]
-                    assert atom.startswith(name + "(") and atom.endswith(")")
-                    atom = atom[len(name) + 1:-1]
-                    elems = atom.split(",")
-                    assert len(elems) == len(doms)
-                    idx = 0
-                    for dom, elem in zip(doms, elems):
-                        idx *= len(domains[dom])
-                        idx += domains[dom].index(elem)
-                    assert table[idx] is None
-                    table[idx] = not negated
+                if formula:
+                    for atom in formula.split("&"):
+                        negated = atom.startswith("~")
+                        if negated:
+                            atom = atom[1:]
+                        assert atom.startswith(
+                            name + "(") and atom.endswith(")")
+                        atom = atom[len(name) + 1:-1]
+                        elems = atom.split(",")
+                        assert len(elems) == len(doms)
+                        idx = 0
+                        for dom, elem in zip(doms, elems):
+                            idx *= len(domains[dom])
+                            idx += domains[dom].index(elem)
+                        assert table[idx] is None
+                        table[idx] = not negated
                 continue
 
             elif match.group(1).startswith("function_") and match.group(2) == "axiom":

@@ -135,7 +135,8 @@ def test3():
 
     g2 = Relation("g2", d, 1)
     prob.declare(g2)
-    prob.require("![X:d]: (g2(X) <=> (?[Y:d,Z:d]: (g1(Y) & g1(Z) & f(Y,Z)=X)))")
+    prob.require(
+        "![X:d]: (g2(X) <=> (?[Y:d,Z:d]: (g1(Y) & g1(Z) & f(Y,Z)=X)))")
 
     # g3 = Relation("g3", d, 1)
     # prob.declare(g3)
@@ -161,7 +162,8 @@ def test3():
 
     s2 = Relation("s2", d, 1)
     prob.declare(s2)
-    prob.require("![X:d]: (s2(X) <=> (g2(X) & ?[Y:d,Z:d]: (s1(Y) & s1(Z) & r(X,Y) & r(Z,X))))")
+    prob.require(
+        "![X:d]: (s2(X) <=> (g2(X) & ?[Y:d,Z:d]: (s1(Y) & s1(Z) & r(X,Y) & r(Z,X))))")
 
     # s3 = Relation("s3", d, 1)
     # prob.declare(s3)
@@ -173,5 +175,7 @@ def test3():
     # print(prob.find_one_model())
     # print(prob.find_all_models(["e"]))
 
+
 def cli():
-    test3()
+    from .transrel import transrel
+    transrel()

@@ -16,6 +16,7 @@
 from typing import Iterator, List, Optional
 
 from .domain import Domain
+from .formula import logical_and
 
 
 class Relation:
@@ -55,20 +56,26 @@ class Relation:
     def is_antisymmetric(self) -> str:
         assert self.arity == 2
         return f"(![X:{self.domain.type_name}, Y:{self.domain.type_name}]: " \
-            f"(({self.contains(['X', 'Y'])} & {self.contains(['Y', 'X'])}) => X=Y))"
+            f"(({self.contains(['X', 'Y'])} & {
+            self.contains(['Y', 'X'])}) => X=Y))"
 
     def is_transitive(self) -> str:
         assert self.arity == 2
         return f"(![X:{self.domain.type_name}, Y:{self.domain.type_name}, Z:{self.domain.type_name}]: " \
-            f"(({self.contains(['X', 'Y'])} & {self.contains(['Y','Z'])}) => {self.contains(['X', 'Z'])}))"
+            f"(({self.contains(['X', 'Y'])} & {self.contains(['Y', 'Z'])}) => {
+            self.contains(['X', 'Z'])}))"
+
+    def is_quasiorder(self) -> str:
+        assert self.arity == 2
+        return logical_and([self.is_reflexive(), self.is_transitive()])
 
     def is_partialorder(self) -> str:
         assert self.arity == 2
-        return f"({self.is_reflexive()} & {self.is_antisymmetric()} & {self.is_transitive()})"
+        return logical_and([self.is_reflexive(), self.is_antisymmetric(), self.is_transitive()])
 
     def is_equivalence(self) -> str:
         assert self.arity == 2
-        return f"({self.is_reflexive()} & {self.is_symmetric()} & {self.is_transitive()})"
+        return logical_and([self.is_reflexive(), self.is_symmetric(), self.is_transitive()])
 
     def has_values(self, table: List[Optional[bool]], elems: Optional[List[str]] = None) -> str:
         if elems is None:
@@ -87,9 +94,4 @@ class Relation:
             coord.reverse()
             claims.append(("" if val else "~") + self.contains(coord))
 
-        if not claims:
-            return "$true"
-        elif len(claims) == 1:
-            return claims[0]
-        else:
-            return "(" + " & ".join(claims) + ")"
+        return logical_and(claims)

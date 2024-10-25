@@ -69,3 +69,10 @@ class FixedDom(NamedDom):
             f"({' | '.join([f'X={e}' for e in self.elems])}))."
 
         yield f"tff({self.name}_distinct, axiom, $distinct({', '.join(self.elems)}))."
+
+
+class ProductDom(Domain):
+    def __init__(self, domain: Domain, arity: int):
+        assert arity >= 0
+        self.domain = domain
+        self.arity = arity

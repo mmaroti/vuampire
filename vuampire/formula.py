@@ -43,3 +43,7 @@ def logical_or(formulas: List[str]) -> str:
         return formulas[0]
     else:
         return "(" + " | ".join(formulas) + ")"
+
+
+def equality(term1: str, term2) -> str:
+    return term1 + "=" + term2

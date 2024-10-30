@@ -57,14 +57,17 @@ def test1():
         prob.require(rel.has_values(table))
         prob.require(logical_not(rel.is_transitive()))
 
+        print()
+        prob.print()
         solution = prob.find_one_model()
-        # print(solution, table)
+        print(solution, table)
         if solution is None:
             if advance(dom_size, table):
                 continue
             else:
                 break
 
+        print("hihi")
         op = Operation("op", dom, 2)
         prob.declare(op)
         prob.require(logical_not(op.is_compatible_with(rel)))

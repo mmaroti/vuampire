@@ -56,14 +56,12 @@ class Relation:
     def is_antisymmetric(self) -> str:
         assert self.arity == 2
         return f"(![X:{self.domain.type_name}, Y:{self.domain.type_name}]: " \
-            f"(({self.contains(['X', 'Y'])} & {
-            self.contains(['Y', 'X'])}) => X=Y))"
+            f"(({self.contains(['X', 'Y'])} & {self.contains(['Y', 'X'])}) => X=Y))"
 
     def is_transitive(self) -> str:
         assert self.arity == 2
         return f"(![X:{self.domain.type_name}, Y:{self.domain.type_name}, Z:{self.domain.type_name}]: " \
-            f"(({self.contains(['X', 'Y'])} & {self.contains(['Y', 'Z'])}) => {
-            self.contains(['X', 'Z'])}))"
+            f"(({self.contains(['X', 'Y'])} & {self.contains(['Y', 'Z'])}) => {self.contains(['X', 'Z'])}))"
 
     def is_quasiorder(self) -> str:
         assert self.arity == 2

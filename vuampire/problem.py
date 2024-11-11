@@ -15,7 +15,7 @@
 
 import re
 import subprocess
-from typing import Dict, List
+from typing import Dict, List, Iterator
 
 from .domain import Domain
 from .relation import Relation
@@ -81,7 +81,6 @@ class Problem:
         result = self.execute("-sa", "fmb", "-fde", "none")
         if not "Finite Model Found!" in result:
             return None
-        # print(result)
 
         domains: Dict[str, List[str]] = {}
         predicates = {}
@@ -218,15 +217,15 @@ class Problem:
             "functions": functions,
         }
 
-    def find_all_models(self, names: List[str]) -> List[Dict]:
+    def yield_all_models(self, names: List[str]) -> Iterator[Dict]:
         for name in names:
             assert name in self.relations or name in self.operations
 
-        results = []
         while True:
             result = self.find_one_model()
             if result is None:
-                return results
+                return
+
             result2 = {}
             omits = []
             for name in names:
@@ -245,9 +244,14 @@ class Problem:
                 else:
                     raise ValueError()
 
-            # print(len(results), len(result["domains"]["d"]), result2)
-            results.append(result2)
+            yield result2
             if not omits:
-                return results
+                return
 
             self.require("~(" + "&".join(omits) + ")")
+
+    def find_all_models(self, names: List[str]) -> List[Dict]:
+        results = []
+        for result in self.yield_all_models(names):
+            results.append(result)
+        return results

@@ -19,7 +19,51 @@ from .operation import Operation
 from .problem import Problem
 from .formula import logical_not
 
-from typing import List
+from typing import List, Iterator
+
+
+def quasi_orders(dom_size: int) -> Iterator[List[bool]]:
+    assert dom_size >= 0
+
+    prob = Problem()
+
+    dom = FixedDom("dom", dom_size)
+    prob.declare(dom)
+
+    rel = Relation("rel", dom, 2)
+    prob.declare(rel)
+
+    prob.require(rel.is_reflexive())
+    prob.require(rel.is_transitive())
+
+    for result in prob.yield_all_models([rel.name]):
+        yield result[rel.name]
+
+
+def reflexive_digraphs(dom_size: int) -> Iterator[List[bool]]:
+    assert dom_size >= 0
+
+    table = [False] * (dom_size * dom_size)
+    for i in range(dom_size):
+        table[i * (dom_size + 1)] = True
+
+    def next() -> bool:
+        for i in range(dom_size):
+            for j in range(dom_size):
+                if j == i:
+                    continue
+                k = i * dom_size + j
+                if table[k]:
+                    table[k] = False
+                else:
+                    table[k] = True
+                    return True
+        return False
+
+    while True:
+        yield table
+        if not next():
+            break
 
 
 def advance(dom_size: int, table: List[bool]) -> bool:
@@ -86,4 +130,6 @@ def test1():
 
 
 def transrel():
-    test1()
+    # test1()
+    for table in quasi_orders(2):
+        print(table)

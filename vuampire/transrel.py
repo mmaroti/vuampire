@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .domain import FixedDom
+from .domain import FixedDom, UNIVERSE
 from .relation import Relation
 from .operation import Operation
 from .problem import Problem
@@ -130,6 +130,10 @@ def test1():
 
 
 def transrel():
-    # test1()
-    for table in quasi_orders(2):
-        print(table)
+    if True:
+        for table in quasi_orders(3):
+            print(table)
+
+    if False:
+        print(UNIVERSE.forall(lambda X, Y: UNIVERSE.forall(
+            lambda Z: (X == Z) | (Y == Z))))

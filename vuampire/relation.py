@@ -15,7 +15,7 @@
 
 from typing import Iterator, List, Optional
 
-from .domain import Domain
+from .domain import Domain, Term, BOOLEAN
 from .formula import logical_and
 
 
@@ -35,18 +35,20 @@ class Relation:
             elems = " * ".join([self.domain.type_name for _ in range(self.arity)])
             yield f"tff(declare_{self.name}, type, {self.name}: ({elems}) > $o)."
 
-    def contains(self, elems: List[str]) -> str:
+    def __call__(self, *elems: Term) -> Term:
         assert len(elems) == self.arity
-        if self.arity == 0:
-            return self.name
-        else:
-            return f"{self.name}({','.join(elems)})"
+        assert all(e.domain == self.domain for e in elems)
 
-    def is_reflexive(self) -> str:
         if self.arity == 0:
-            return self.contains([])
+            return Term(BOOLEAN, self.name)
         else:
-            return f"(![X:{self.domain.type_name}]: {self.contains(['X' for _ in range(self.arity)])})"
+            return Term(BOOLEAN, f"{self.name}({','.join(str(e) for e in elems)})")
+
+    def is_reflexive(self) -> Term:
+        if self.arity == 0:
+            return Term(BOOLEAN, self.name)
+        else:
+            return self.domain.forall(lambda x: self(*[x for _ in range(self.arity)]))
 
     def is_symmetric(self) -> str:
         assert self.arity == 2
@@ -60,8 +62,7 @@ class Relation:
 
     def is_transitive(self) -> str:
         assert self.arity == 2
-        return f"(![X:{self.domain.type_name}, Y:{self.domain.type_name}, Z:{self.domain.type_name}]: " \
-            f"(({self.contains(['X', 'Y'])} & {self.contains(['Y', 'Z'])}) => {self.contains(['X', 'Z'])}))"
+        return self.domain.forall(lambda x, y, z: (self(x, y) & self(y, z)).imp(self(x, z)))
 
     def is_quasiorder(self) -> str:
         assert self.arity == 2
@@ -90,6 +91,9 @@ class Relation:
                 coord.append(elems[idx % len(elems)])
                 idx //= len(elems)
             coord.reverse()
-            claims.append(("" if val else "~") + self.contains(coord))
+            claim = self(*coord)
+            if not val:
+                claim = ~claim
+            claims.append(claim)
 
-        return logical_and(claims)
+        return Term.all(claims)

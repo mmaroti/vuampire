@@ -17,7 +17,7 @@ import re
 import subprocess
 from typing import Dict, List, Iterator
 
-from .domain import Domain
+from .domain import Domain, Term, BOOLEAN
 from .relation import Relation
 from .operation import Operation
 
@@ -45,7 +45,9 @@ class Problem:
         for line in obj.declare():
             self.lines.append(line)
 
-    def require(self, formula: str):
+    def require(self, formula: Term):
+        assert formula.domain == BOOLEAN
+        formula = formula.value
         if formula.startswith("(") and formula.endswith(")"):
             formula = formula[1:-1]
         name = "axiom" + str(len(self.lines))
@@ -58,7 +60,7 @@ class Problem:
     def execute(self, *options: List[str]) -> str:
         input = "\n".join(self.lines)
         result: subprocess.CompletedProcess = subprocess.run(
-            args=("vampire", ) + options,
+            args=("vampire-3b8b5760", ) + options,
             input=input,
             text=True,
             capture_output=True,
@@ -248,7 +250,7 @@ class Problem:
             if not omits:
                 return
 
-            self.require("~(" + "&".join(omits) + ")")
+            self.require(~Term.all(omits))
 
     def find_all_models(self, names: List[str]) -> List[Dict]:
         results = []

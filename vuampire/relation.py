@@ -13,39 +13,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Iterator, List, Optional
+from typing import List, Optional
 from typeguard import typechecked
 
 from .domain import Domain, Term, BOOLEAN
+from .function import Function
 
 
-class Relation:
+class Relation(Function):
     @typechecked
     def __init__(self, name: str, domain: Domain, arity: int):
         assert arity >= 0
+        super().__init__(name, [domain for _ in range(arity)], BOOLEAN)
         self.domain = domain
-        self.arity = arity
-        self.name = name
-
-    @typechecked
-    def declare(self) -> Iterator[str]:
-        if self.arity == 0:
-            yield f"tff(declare_{self.name}, type, {self.name}: $o)."
-        elif self.arity == 1:
-            yield f"tff(declare_{self.name}, type, {self.name}: {self.domain.type_name} > $o)."
-        else:
-            elems = " * ".join([self.domain.type_name for _ in range(self.arity)])
-            yield f"tff(declare_{self.name}, type, {self.name}: ({elems}) > $o)."
-
-    @typechecked
-    def __call__(self, *elems: Term) -> Term:
-        assert len(elems) == self.arity
-        assert all(e.domain == self.domain for e in elems)
-
-        if self.arity == 0:
-            return Term(BOOLEAN, self.name)
-        else:
-            return Term(BOOLEAN, f"{self.name}({','.join(str(e) for e in elems)})")
 
     @typechecked
     def is_reflexive(self) -> Term:

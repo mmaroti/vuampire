@@ -107,10 +107,9 @@ class Term:
 class Domain(ABC):
     nesting: int = 0
 
-    @property
     @typechecked
     @abstractmethod
-    def type_name(self) -> str:
+    def __str__(self) -> str:
         raise NotImplementedError()
 
     @typechecked
@@ -129,7 +128,7 @@ class Domain(ABC):
         Domain.nesting -= num_args
 
         assert result.domain == BOOLEAN
-        args = [f"{arg}:{self.type_name}" for arg in args]
+        args = [f"{arg}:{self}" for arg in args]
         return Term(BOOLEAN, f"(![{','.join(args)}]: {result.value})")
 
 
@@ -138,9 +137,8 @@ class PrimitiveDom(Domain):
     def __init__(self, name: str):
         self.name = name
 
-    @property
     @typechecked
-    def type_name(self) -> str:
+    def __str__(self) -> str:
         return self.name
 
     @typechecked
@@ -159,9 +157,8 @@ class NamedDom(Domain):
     def __init__(self, name: str):
         self.name = name
 
-    @property
     @typechecked
-    def type_name(self) -> str:
+    def __str__(self) -> str:
         return self.name
 
     @typechecked
@@ -182,7 +179,7 @@ class FixedDom(NamedDom):
             yield line
 
         for i in range(self.size):
-            yield f"tff(declare_{self.elems[i]}, type, {self.elems[i]}: {self.type_name})."
+            yield f"tff(declare_{self.elems[i]}, type, {self.elems[i]}: {self})."
 
         axiom = self.forall(lambda x: Term.any([x == e for e in self.elems]))
         yield f"tff({self.name}_elements, axiom, {axiom})."

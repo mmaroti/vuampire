@@ -33,8 +33,8 @@ class Problem:
     @typechecked
     def declare(self, obj: Domain | Relation | Operation):
         if isinstance(obj, Domain):
-            assert obj.type_name not in self.domains
-            self.domains[obj.type_name] = obj
+            assert str(obj) not in self.domains
+            self.domains[str(obj)] = obj
         elif isinstance(obj, Relation):
             assert obj.name not in self.relations
             self.relations[obj.name] = obj

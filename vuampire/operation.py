@@ -13,40 +13,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Iterator, List, Optional
+from typing import List, Optional
 from typeguard import typechecked
 
 from .domain import Domain, Term
+from .function import Function
 from .relation import Relation
 
 
-class Operation:
+class Operation(Function):
     @typechecked
     def __init__(self, name: str, domain: Domain, arity: int):
         assert arity >= 0
-        self.name = name
-        self.domain = domain
-        self.arity = arity
+        super().__init__(name, [domain for _ in range(arity)], domain)
 
+    @property
     @typechecked
-    def declare(self) -> Iterator[str]:
-        if self.arity == 0:
-            yield f"tff(declare_{self.name}, type, {self.name}: {self.domain.type_name})."
-        elif self.arity == 1:
-            yield f"tff(declare_{self.name}, type, {self.name}: {self.domain.type_name} > {self.domain.type_name})."
-        else:
-            elems = " * ".join([self.domain.type_name for _ in range(self.arity)])
-            yield f"tff(declare_{self.name}, type, {self.name}: ({elems}) > {self.domain.type_name})."
-
-    @typechecked
-    def __call__(self, *elems: Term) -> Term:
-        assert len(elems) == self.arity
-        assert all(e.domain == self.domain for e in elems)
-
-        if not elems:
-            return Term(self.domain, self.name)
-        else:
-            return Term(self.domain, f"{self.name}({','.join(str(e) for e in elems)})")
+    def domain(self) -> Domain:
+        return self.codomain
 
     @typechecked
     def is_idempotent(self) -> Term:
@@ -76,7 +60,7 @@ class Operation:
         vars = []
         for i in range(self.arity):
             for j in range(rel.arity):
-                vars.append(var(i, j) + ":" + self.domain.type_name)
+                vars.append(var(i, j) + ":" + str(self.domain))
         vars = ", ".join(vars)
 
         pred = []

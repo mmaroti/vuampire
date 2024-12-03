@@ -15,60 +15,91 @@
 
 from abc import ABC, abstractmethod
 from typing import Iterator, Callable, List
+from typeguard import typechecked
 
 
 class Term:
+    @typechecked
     def __init__(self, domain: 'Domain', value: str):
         self.domain = domain
         self.value = value
 
+    @typechecked
     def __str__(self) -> str:
         return self.value
 
+    @typechecked
     def __eq__(self, other: 'Term') -> 'Term':
         assert self.domain == other.domain
         return Term(BOOLEAN, f"{self} = {other}")
 
+    @typechecked
     def __ne__(self, other: 'Term') -> 'Term':
         assert self.domain == other.domain
         return Term(BOOLEAN, f"{self} != {other}")
 
+    @typechecked
     def __and__(self, other: 'Term') -> 'Term':
         assert self.domain == BOOLEAN and other.domain == BOOLEAN
-        return Term(BOOLEAN, f"({self} & {other})")
+        if self.value == "$false" or other.value == "$true":
+            return self
+        elif self.value == "$true" or other.value == "$false":
+            return other
+        else:
+            return Term(BOOLEAN, f"({self} & {other})")
 
+    @typechecked
     def __or__(self, other: 'Term') -> 'Term':
         assert self.domain == BOOLEAN and other.domain == BOOLEAN
-        return Term(BOOLEAN, f"({self} | {other})")
+        if self.value == "$false" or other.value == "$true":
+            return other
+        elif self.value == "$true" or other.value == "$false":
+            return self
+        else:
+            return Term(BOOLEAN, f"({self} | {other})")
 
+    @typechecked
     def __invert__(self) -> 'Term':
         assert self.domain == BOOLEAN
-        if self.value.startswith("~"):
+        if self.value == "$true":
+            return Term(BOOLEAN, "$false")
+        elif self.value == "$false":
+            return Term(BOOLEAN, "$true")
+        elif self.value.startswith("~"):
             return Term(BOOLEAN, self.value[1:])
         else:
             return Term(BOOLEAN, f"~{self.value}")
 
+    @typechecked
     def imp(self, other: 'Term') -> 'Term':
         assert self.domain == BOOLEAN and other.domain == BOOLEAN
         return Term(BOOLEAN, f"({self} => {other})")
 
     @staticmethod
+    @typechecked
     def any(terms: List['Term']) -> 'Term':
         assert all(t.domain == BOOLEAN for t in terms)
+        terms = [t for t in terms if t.value != "$false"]
         if len(terms) == 0:
             return Term(BOOLEAN, '$false')
         elif len(terms) == 1:
             return terms[0]
+        elif any(t.value == "$true" for t in terms):
+            return Term(BOOLEAN, "$true")
         else:
             return Term(BOOLEAN, "(" + " | ".join(str(t) for t in terms) + ")")
 
     @staticmethod
+    @typechecked
     def all(terms: List['Term']) -> 'Term':
         assert all(t.domain == BOOLEAN for t in terms)
+        terms = [t for t in terms if t.value != "$true"]
         if len(terms) == 0:
             return Term(BOOLEAN, '$true')
         elif len(terms) == 1:
             return terms[0]
+        elif any(t.value == "$false" for t in terms):
+            return Term(BOOLEAN, "$false")
         else:
             return Term(BOOLEAN, "(" + " & ".join(str(t) for t in terms) + ")")
 
@@ -77,15 +108,18 @@ class Domain(ABC):
     nesting: int = 0
 
     @property
+    @typechecked
     @abstractmethod
     def type_name(self) -> str:
         raise NotImplementedError()
 
+    @typechecked
     @abstractmethod
     def declare(self) -> Iterator[str]:
         raise NotImplementedError()
 
-    def forall(self, callable: Callable[..., Term]):
+    @typechecked
+    def forall(self, callable: Callable[..., Term]) -> Term:
         num_args: int = callable.__code__.co_argcount
         args = [Term(self, f"X{Domain.nesting + i}")
                 for i in range(num_args)]
@@ -100,13 +134,16 @@ class Domain(ABC):
 
 
 class PrimitiveDom(Domain):
+    @typechecked
     def __init__(self, name: str):
         self.name = name
 
     @property
+    @typechecked
     def type_name(self) -> str:
         return self.name
 
+    @typechecked
     def declare(self) -> Iterator[str]:
         if False:
             yield
@@ -118,23 +155,28 @@ INTEGER = PrimitiveDom("$int")
 
 
 class NamedDom(Domain):
+    @typechecked
     def __init__(self, name: str):
         self.name = name
 
     @property
+    @typechecked
     def type_name(self) -> str:
         return self.name
 
+    @typechecked
     def declare(self) -> Iterator[str]:
         yield f"tff(declared_{self.name}, type, {self.name}:$tType)."
 
 
 class FixedDom(NamedDom):
+    @typechecked
     def __init__(self, name: str, size: int):
         super().__init__(name)
         self.size = size
         self.elems = [Term(self, f"{name}{i}") for i in range(size)]
 
+    @typechecked
     def declare(self) -> Iterator[str]:
         for line in super().declare():
             yield line
@@ -147,10 +189,3 @@ class FixedDom(NamedDom):
 
         elems = ', '.join([str(e) for e in self.elems])
         yield f"tff({self.name}_distinct, axiom, $distinct({elems}))."
-
-
-class ProductDom(Domain):
-    def __init__(self, domain: Domain, arity: int):
-        assert arity >= 0
-        self.domain = domain
-        self.arity = arity

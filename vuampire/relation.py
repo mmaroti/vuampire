@@ -14,18 +14,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Iterator, List, Optional
+from typeguard import typechecked
 
 from .domain import Domain, Term, BOOLEAN
-from .formula import logical_and
 
 
 class Relation:
+    @typechecked
     def __init__(self, name: str, domain: Domain, arity: int):
         assert arity >= 0
         self.domain = domain
         self.arity = arity
         self.name = name
 
+    @typechecked
     def declare(self) -> Iterator[str]:
         if self.arity == 0:
             yield f"tff(declare_{self.name}, type, {self.name}: $o)."
@@ -35,6 +37,7 @@ class Relation:
             elems = " * ".join([self.domain.type_name for _ in range(self.arity)])
             yield f"tff(declare_{self.name}, type, {self.name}: ({elems}) > $o)."
 
+    @typechecked
     def __call__(self, *elems: Term) -> Term:
         assert len(elems) == self.arity
         assert all(e.domain == self.domain for e in elems)
@@ -44,39 +47,47 @@ class Relation:
         else:
             return Term(BOOLEAN, f"{self.name}({','.join(str(e) for e in elems)})")
 
+    @typechecked
     def is_reflexive(self) -> Term:
         if self.arity == 0:
             return Term(BOOLEAN, self.name)
         else:
             return self.domain.forall(lambda x: self(*[x for _ in range(self.arity)]))
 
-    def is_symmetric(self) -> str:
+    @typechecked
+    def is_symmetric(self) -> Term:
         assert self.arity == 2
-        return f"(![X:{self.domain.type_name}, Y:{self.domain.type_name}]: " \
-            f"({self.contains(['X', 'Y'])} => {self.contains(['Y', 'X'])}))"
+        return self.domain.forall(lambda x, y: self(x, y).imp(self(y, x)))
 
-    def is_antisymmetric(self) -> str:
+    @typechecked
+    def is_antisymmetric(self) -> Term:
         assert self.arity == 2
-        return f"(![X:{self.domain.type_name}, Y:{self.domain.type_name}]: " \
-            f"(({self.contains(['X', 'Y'])} & {self.contains(['Y', 'X'])}) => X=Y))"
+        return self.domain.forall(lambda x, y: (self(x, y) & self(y, x)).imp(x == y))
 
-    def is_transitive(self) -> str:
+    @typechecked
+    def is_transitive(self) -> Term:
         assert self.arity == 2
         return self.domain.forall(lambda x, y, z: (self(x, y) & self(y, z)).imp(self(x, z)))
 
-    def is_quasiorder(self) -> str:
+    @typechecked
+    def is_quasiorder(self) -> Term:
         assert self.arity == 2
-        return logical_and([self.is_reflexive(), self.is_transitive()])
+        return self.is_reflexive() & self.is_transitive()
 
-    def is_partialorder(self) -> str:
+    @typechecked
+    def is_partialorder(self) -> Term:
         assert self.arity == 2
-        return logical_and([self.is_reflexive(), self.is_antisymmetric(), self.is_transitive()])
+        return self.is_quasiorder() & self.is_antisymmetric()
 
-    def is_equivalence(self) -> str:
+    @typechecked
+    def is_equivalence(self) -> Term:
         assert self.arity == 2
-        return logical_and([self.is_reflexive(), self.is_symmetric(), self.is_transitive()])
+        return self.is_quasiorder() & self.is_symmetric()
 
-    def has_values(self, table: List[Optional[bool]], elems: Optional[List[str]] = None) -> str:
+    @typechecked
+    def has_values(self,
+                   table: List[Optional[bool]],
+                   elems: Optional[List[Term]] = None) -> Term:
         if elems is None:
             elems = self.domain.elems
         assert len(table) == len(elems) ** self.arity

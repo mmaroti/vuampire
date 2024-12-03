@@ -19,6 +19,7 @@ from .domain import FixedDom, NamedDom
 from .relation import Relation
 from .operation import Operation, Constant
 from .problem import Problem
+from .validation import validate
 
 
 def test1():
@@ -177,5 +178,6 @@ def test3():
 
 
 def cli():
-    from .transrel import transrel
-    transrel()
+    # from .transrel import transrel
+    # transrel()
+    validate()

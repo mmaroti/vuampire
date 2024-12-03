@@ -15,7 +15,8 @@
 
 import re
 import subprocess
-from typing import Dict, List, Iterator
+from typing import Dict, List, Iterator, Any, Optional
+from typeguard import typechecked
 
 from .domain import Domain, Term, BOOLEAN
 from .relation import Relation
@@ -29,6 +30,7 @@ class Problem:
         self.operations: Dict[str, Operation] = {}
         self.lines: List[str] = []
 
+    @typechecked
     def declare(self, obj: Domain | Relation | Operation):
         if isinstance(obj, Domain):
             assert obj.type_name not in self.domains
@@ -45,6 +47,7 @@ class Problem:
         for line in obj.declare():
             self.lines.append(line)
 
+    @typechecked
     def require(self, formula: Term):
         assert formula.domain == BOOLEAN
         formula = formula.value
@@ -57,7 +60,8 @@ class Problem:
         for line in self.lines:
             print(line)
 
-    def execute(self, *options: List[str]) -> str:
+    @typechecked
+    def execute(self, *options: str) -> str:
         input = "\n".join(self.lines)
         result: subprocess.CompletedProcess = subprocess.run(
             args=("vampire-3b8b5760", ) + options,
@@ -79,7 +83,8 @@ class Problem:
     RE_FUNCTION_DECL = re.compile(r"^(\w*):(?:|\((.*)\)>)(\w*)$")
     RE_FINITE_DOM = re.compile(r"^!\[X:(\w*)\]:\((.*)\)$")
 
-    def find_one_model(self) -> Dict:
+    @typechecked
+    def find_one_model(self) -> Optional[Dict[str, Any]]:
         result = self.execute("-sa", "fmb", "-fde", "none")
         if not "Finite Model Found!" in result:
             return None
@@ -219,7 +224,8 @@ class Problem:
             "functions": functions,
         }
 
-    def yield_all_models(self, names: List[str]) -> Iterator[Dict]:
+    @typechecked
+    def yield_all_models(self, names: List[str]) -> Iterator[Dict[str, Any]]:
         for name in names:
             assert name in self.relations or name in self.operations
 
@@ -252,8 +258,16 @@ class Problem:
 
             self.require(~Term.all(omits))
 
-    def find_all_models(self, names: List[str]) -> List[Dict]:
+    @typechecked
+    def find_all_models(self, names: List[str]) -> List[Dict[str, Any]]:
         results = []
         for result in self.yield_all_models(names):
             results.append(result)
         return results
+
+    @typechecked
+    def find_num_models(self, names: List[str]) -> int:
+        count = 0
+        for _ in self.yield_all_models(names):
+            count += 1
+        return count

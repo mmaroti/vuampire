@@ -14,18 +14,21 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Iterator, List, Optional
+from typeguard import typechecked
 
-from .domain import Domain
+from .domain import Domain, Term
 from .relation import Relation
 
 
 class Operation:
+    @typechecked
     def __init__(self, name: str, domain: Domain, arity: int):
         assert arity >= 0
         self.name = name
         self.domain = domain
         self.arity = arity
 
+    @typechecked
     def declare(self) -> Iterator[str]:
         if self.arity == 0:
             yield f"tff(declare_{self.name}, type, {self.name}: {self.domain.type_name})."
@@ -35,29 +38,33 @@ class Operation:
             elems = " * ".join([self.domain.type_name for _ in range(self.arity)])
             yield f"tff(declare_{self.name}, type, {self.name}: ({elems}) > {self.domain.type_name})."
 
-    def evaluate(self, elems: List[str]) -> str:
+    @typechecked
+    def __call__(self, *elems: Term) -> Term:
         assert len(elems) == self.arity
+        assert all(e.domain == self.domain for e in elems)
+
         if not elems:
-            return self.name
+            return Term(self.domain, self.name)
         else:
-            return f"{self.name}({','.join(elems)})"
+            return Term(self.domain, f"{self.name}({','.join(str(e) for e in elems)})")
 
-    def is_idempotent(self) -> str:
+    @typechecked
+    def is_idempotent(self) -> Term:
         assert self.arity >= 1
-        return f"(![X:{self.domain.type_name}]: {self.evaluate(['X' for _ in range(self.arity)])}=X)"
+        return self.domain.forall(lambda x: self(*[x for _ in range(self.arity)]) == x)
 
-    def is_commutative(self) -> str:
+    @typechecked
+    def is_commutative(self) -> Term:
         assert self.arity == 2
-        return f"(![X:{self.domain.type_name}, Y:{self.domain.type_name}]: " \
-            f"{self.evaluate(['X', 'Y'])}={self.evaluate(['Y', 'X'])})"
+        return self.domain.forall(lambda x, y: self(x, y) == self(y, x))
 
-    def is_associative(self) -> str:
+    @typechecked
+    def is_associative(self) -> Term:
         assert self.arity == 2
-        return f"(![X:{self.domain.type_name}, Y:{self.domain.type_name}, Z:{self.domain.type_name}]: " \
-            f"{self.evaluate(['X', self.evaluate(['Y', 'Z'])])}=" \
-            f"{self.evaluate([self.evaluate(['X', 'Y']), 'Z'])})"
+        return self.domain.forall(lambda x, y, z: self(x, self(y, z)) == self(self(x, y), z))
 
-    def is_compatible_with(self, rel: Relation) -> str:
+    @typechecked
+    def is_compatible_with(self, rel: Relation) -> Term:
         if rel.arity == 0:
             return "$true"
         elif self.arity == 0:
@@ -88,7 +95,8 @@ class Operation:
 
         return f"(![{vars}]: ({pred} => {conc}))"
 
-    def has_values(self, table: List[Optional[int]], elems: Optional[List[str]] = None) -> str:
+    @typechecked
+    def has_values(self, table: List[Optional[int]], elems: Optional[List[Term]] = None) -> Term:
         if elems is None:
             elems = self.domain.elems
         assert len(table) == len(elems) ** self.arity
@@ -103,16 +111,12 @@ class Operation:
                 coord.append(elems[idx % len(elems)])
                 idx //= len(elems)
             coord.reverse()
-            claims.append(self.evaluate(coord) + "=" + elems[val])
+            claims.append(self(*coord) == elems[val])
 
-        if not claims:
-            return "$true"
-        elif len(claims) == 1:
-            return claims[0]
-        else:
-            return "(" + " & ".join(claims) + ")"
+        return Term.all(claims)
 
 
 class Constant(Operation):
+    @typechecked
     def __init__(self, name: str, domain: Domain):
         super().__init__(name, domain, 0)

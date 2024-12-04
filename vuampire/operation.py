@@ -16,7 +16,7 @@
 from typing import List, Optional
 from typeguard import typechecked
 
-from .domain import Domain, Term
+from .domain import Domain, Term, FixedDom
 from .function import Function
 from .relation import Relation
 
@@ -80,10 +80,11 @@ class Operation(Function):
         return f"(![{vars}]: ({pred} => {conc}))"
 
     @typechecked
-    def has_values(self, table: List[Optional[int]], elems: Optional[List[Term]] = None) -> Term:
-        if elems is None:
-            elems = self.domain.elems
+    def has_values(self, table: List[Optional[Term]]) -> Term:
+        assert isinstance(self.domain, FixedDom)
+        elems = self.domain.elems
         assert len(table) == len(elems) ** self.arity
+        assert all(t.domain == self.domain for t in table)
 
         claims = []
         for idx, val in enumerate(table):
@@ -95,7 +96,7 @@ class Operation(Function):
                 coord.append(elems[idx % len(elems)])
                 idx //= len(elems)
             coord.reverse()
-            claims.append(self(*coord) == elems[val])
+            claims.append(self(*coord) == val)
 
         return Term.all(claims)
 

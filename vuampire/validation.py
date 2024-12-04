@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import click
+
 from .problem import Problem
 from .domain import FixedDom
 from .relation import Relation
@@ -97,7 +99,7 @@ def check_semilattices(size: int, expected: int):
     print(count)
     assert count == expected
 
-
+@click.command()
 def validate():
     check_equivalence_relations(4, 15)
     check_partial_orders(3, 19)

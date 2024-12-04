@@ -21,6 +21,7 @@ from typeguard import typechecked
 from .domain import Domain, Term, BOOLEAN
 from .relation import Relation
 from .operation import Operation
+from .function import Function
 
 
 class Problem:
@@ -28,6 +29,7 @@ class Problem:
         self.domains: Dict[str, Domain] = {}
         self.relations: Dict[str, Relation] = {}
         self.operations: Dict[str, Operation] = {}
+        self.functions: Dict[str, Operation] = {}
         self.lines: List[str] = []
 
     @typechecked
@@ -41,6 +43,9 @@ class Problem:
         elif isinstance(obj, Operation):
             assert obj.name not in self.operations
             self.operations[obj.name] = obj
+        elif isinstance(obj, Function):
+            assert obj.name not in self.functions
+            self.functions[obj.name] = obj
         else:
             raise ValueError()
 
@@ -248,6 +253,7 @@ class Problem:
                     func = result["functions"][name]
                     table = func["table"]
                     result2[name] = table
+                    table = [oper.domain.elems[t] for t in table]
                     omits.append(oper.has_values(table))
                 else:
                     raise ValueError()

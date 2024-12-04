@@ -13,13 +13,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import json
+import click
 
 from .domain import FixedDom, NamedDom
 from .relation import Relation
 from .operation import Operation, Constant
 from .problem import Problem
 from .validation import validate
+from .lexord import ORDDOM, ORDLEX, OrdCmp
 
 
 def test1():
@@ -177,7 +178,28 @@ def test3():
     # print(prob.find_all_models(["e"]))
 
 
+@click.group(context_settings={
+    "help_option_names": ["-h", "--help"],
+    "show_default": True,
+})
 def cli():
-    # from .transrel import transrel
-    # transrel()
-    validate()
+    pass
+
+
+cli.add_command(validate)
+
+
+@cli.command()
+def test():
+    prob = Problem()
+
+    prob.declare(ORDDOM)
+    prob.declare(ORDLEX)
+
+    dom = FixedDom("dom", 4)
+    prob.declare(dom)
+
+    cmd = OrdCmp(dom)
+    prob.declare(cmd)
+
+    prob.print()

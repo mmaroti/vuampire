@@ -163,7 +163,7 @@ class NamedDom(Domain):
 
     @typechecked
     def declare(self) -> Iterator[str]:
-        yield f"tff(declared_{self.name}, type, {self.name}:$tType)."
+        yield f"tff(domain_{self}, type, {self}:$tType)."
 
 
 class FixedDom(NamedDom):
@@ -179,10 +179,10 @@ class FixedDom(NamedDom):
             yield line
 
         for i in range(self.size):
-            yield f"tff(declare_{self.elems[i]}, type, {self.elems[i]}: {self})."
+            yield f"tff(elem_{self.elems[i]}, type, {self.elems[i]}: {self})."
 
         axiom = self.forall(lambda x: Term.any([x == e for e in self.elems]))
-        yield f"tff({self.name}_elements, axiom, {axiom})."
+        yield f"tff(bounded_{self}, axiom, {axiom})."
 
         elems = ', '.join([str(e) for e in self.elems])
-        yield f"tff({self.name}_distinct, axiom, $distinct({elems}))."
+        yield f"tff(distinct_{self}, axiom, $distinct({elems}))."

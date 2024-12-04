@@ -10,8 +10,10 @@ readme = "README.md"
 license = { text = "GPLv3+ License" }
 urls = { Repository = "https://github.com/mmaroti/vuampire.git" }
 requires-python = ">=3.10"
-classifiers = ["License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)"]
-dependencies = ["click"]
+classifiers = [
+        "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+]
+dependencies = ["click", "typeguard"]
 dynamic = ["version"]
 
 [project.scripts]

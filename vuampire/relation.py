@@ -16,7 +16,7 @@
 from typing import List, Optional
 from typeguard import typechecked
 
-from .domain import Domain, Term, BOOLEAN
+from .domain import Domain, Term, BOOLEAN, FixedDom
 from .function import Function
 
 
@@ -65,11 +65,9 @@ class Relation(Function):
         return self.is_quasiorder() & self.is_symmetric()
 
     @typechecked
-    def has_values(self,
-                   table: List[Optional[bool]],
-                   elems: Optional[List[Term]] = None) -> Term:
-        if elems is None:
-            elems = self.domain.elems
+    def has_values(self, table: List[Optional[bool]]) -> Term:
+        assert isinstance(self.domain, FixedDom)
+        elems = self.domain.elems
         assert len(table) == len(elems) ** self.arity
 
         claims = []

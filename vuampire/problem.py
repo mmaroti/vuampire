@@ -33,7 +33,7 @@ class Problem:
         self.lines: List[str] = []
 
     @typechecked
-    def declare(self, obj: Domain | Relation | Operation):
+    def declare(self, obj: Domain | Relation | Operation | Function):
         if isinstance(obj, Domain):
             assert str(obj) not in self.domains
             self.domains[str(obj)] = obj
@@ -55,11 +55,11 @@ class Problem:
     @typechecked
     def require(self, formula: Term):
         assert formula.domain == BOOLEAN
-        formula = formula.value
-        if formula.startswith("(") and formula.endswith(")"):
-            formula = formula[1:-1]
+        value = formula.value
+        if value.startswith("(") and value.endswith(")"):
+            value = value[1:-1]
         name = "axiom" + str(len(self.lines))
-        self.lines.append(f"tff({name}, axiom, {formula}).")
+        self.lines.append(f"tff({name}, axiom, {value}).")
 
     def print(self):
         for line in self.lines:

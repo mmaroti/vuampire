@@ -16,7 +16,7 @@
 from typing import List, Optional
 from typeguard import typechecked
 
-from .domain import Domain, Term, FixedDom
+from .domain import Domain, Term, FixedDom, BOOLEAN
 from .function import Function
 from .relation import Relation
 
@@ -28,7 +28,6 @@ class Operation(Function):
         super().__init__(name, [domain for _ in range(arity)], domain)
 
     @property
-    @typechecked
     def domain(self) -> Domain:
         return self.codomain
 
@@ -48,36 +47,39 @@ class Operation(Function):
         return self.domain.forall(lambda x, y, z: self(x, self(y, z)) == self(self(x, y), z))
 
     @typechecked
+    def is_surjective(self) -> Term:
+        assert self.arity >= 1
+        return self.domain.forall(lambda x: self.domain.exists(
+            lambda *ys: Term.any([x == y for y in ys]),
+            num_args=self.arity))
+
+    @typechecked
+    def is_bijective(self) -> Term:
+        assert self.arity == 1
+        return self.domain.forall(lambda x, y: (self(x) == self(y)).imp(x == y))
+
+    @typechecked
     def is_compatible_with(self, rel: Relation) -> Term:
         if rel.arity == 0:
-            return "$true"
+            return Term(BOOLEAN, "$true")
         elif self.arity == 0:
-            return rel.contains([self.evaluate([]) for _ in rel.arity])
+            val = self()
+            return rel(*[val for _ in range(rel.arity)])
 
-        def var(i: int, j: int) -> str:
-            return chr(ord('A') + i) + str(j)
+        def test(*vars):
+            assert len(vars) == self.arity * rel.arity
 
-        vars = []
-        for i in range(self.arity):
-            for j in range(rel.arity):
-                vars.append(var(i, j) + ":" + str(self.domain))
-        vars = ", ".join(vars)
+            prec = []
+            for i in range(0, len(vars), rel.arity):
+                prec.append(rel(*vars[i: i + rel.arity]))
 
-        pred = []
-        for i in range(self.arity):
-            pred.append(rel.contains([var(i, j) for j in range(rel.arity)]))
+            vals = []
+            for i in range(rel.arity):
+                vals.append(self(*vars[i::rel.arity]))
 
-        if len(pred) >= 2:
-            pred = "(" + " & ".join(pred) + ")"
-        else:
-            pred = pred[0]
+            return Term.all(prec).imp(rel(*vals))
 
-        conc = []
-        for j in range(rel.arity):
-            conc.append(self.evaluate([var(i, j) for i in range(self.arity)]))
-        conc = rel.contains(conc)
-
-        return f"(![{vars}]: ({pred} => {conc}))"
+        return self.domain.forall(test, num_args=self.arity * rel.arity)
 
     @typechecked
     def has_values(self, table: List[Optional[Term]]) -> Term:

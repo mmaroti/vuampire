@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from abc import ABC, abstractmethod
-from typing import Iterator, Callable, List
+from typing import Iterator, Callable, List, Optional
 from typeguard import typechecked
 
 
@@ -118,8 +118,10 @@ class Domain(ABC):
         raise NotImplementedError()
 
     @typechecked
-    def forall(self, callable: Callable[..., Term]) -> Term:
-        num_args: int = callable.__code__.co_argcount
+    def forall(self, callable: Callable[..., Term],
+               num_args: Optional[int] = None) -> Term:
+        if num_args is None:
+            num_args = callable.__code__.co_argcount
         args = [Term(self, f"X{Domain.nesting + i}")
                 for i in range(num_args)]
 
@@ -129,7 +131,23 @@ class Domain(ABC):
 
         assert result.domain == BOOLEAN
         args = [f"{arg}:{self}" for arg in args]
-        return Term(BOOLEAN, f"(![{','.join(args)}]: {result.value})")
+        return Term(BOOLEAN, f"(![{','.join(args)}]: {result})")
+
+    @typechecked
+    def exists(self, callable: Callable[..., Term],
+               num_args: Optional[int] = None) -> Term:
+        if num_args is None:
+            num_args = callable.__code__.co_argcount
+        args = [Term(self, f"X{Domain.nesting + i}")
+                for i in range(num_args)]
+
+        Domain.nesting += num_args
+        result = callable(*args)
+        Domain.nesting -= num_args
+
+        assert result.domain == BOOLEAN
+        args = [f"{arg}:{self}" for arg in args]
+        return Term(BOOLEAN, f"(?[{','.join(args)}]: {result})")
 
 
 class PrimitiveDom(Domain):

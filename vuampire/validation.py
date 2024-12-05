@@ -99,9 +99,49 @@ def check_semilattices(size: int, expected: int):
     print(count)
     assert count == expected
 
+
+def check_petersen_automorphisms():
+    print(f"Number of automorphisms of the Petersen graph is: ",
+          end="", flush=True)
+
+    prob = Problem()
+
+    dom = FixedDom("dom", 10)
+    prob.declare(dom)
+
+    rel = Relation("rel", dom, 2)
+    prob.declare(rel)
+
+    table = [False for _ in range(100)]
+
+    def set(i, j):
+        assert 0 <= i < 10 and 0 <= j < 10
+        table[i * 10 + j] = True
+        table[j * 10 + i] = True
+
+    for i in range(5):
+        set(i, (i + 1) % 5)
+        set(i, i + 5)
+        set(i + 5, (i + 2) % 5 + 5)
+
+    prob.require(rel.has_values(table))
+
+    aut = Operation("aut", dom, 1)
+    prob.declare(aut)
+
+    prob.require(aut.is_bijective())
+    prob.require(aut.is_compatible_with(rel))
+
+    count = prob.find_num_models(["aut"])
+
+    print(count)
+    assert count == 120
+
+
 @click.command()
 def validate():
-    check_equivalence_relations(4, 15)
+    check_equivalence_relations(5, 52)
     check_partial_orders(3, 19)
     check_semigroups(3, 113)
-    check_semilattices(3, 9)
+    check_semilattices(4, 76)
+    check_petersen_automorphisms()
